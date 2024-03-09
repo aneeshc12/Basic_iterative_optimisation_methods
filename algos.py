@@ -16,14 +16,18 @@ def steepest_descent(
     condition: Literal["Backtracking", "Bisection"],
 ) -> npt.NDArray[np.float64]:
     # Complete this function
+    ip = copy.deepcopy(initial_point)
 
     f_val = np.empty(int(1e4 + 5))
     f_prime_val = np.empty(int(1e4 + 5))
 
-    f_val[0] = f(initial_point)
-    f_prime_val[0] = np.linalg.norm(d_f(initial_point))
+    f_val[0] = f(ip)
+    f_prime_val[0] = np.linalg.norm(d_f(ip))
 
-    ip = copy.copy(initial_point)
+    x_val = [ip]
+    grad_val = []
+
+    print("initpt: ", ip)
 
     if condition == "Backtracking":
         alpha = 10.
@@ -32,7 +36,7 @@ def steepest_descent(
         k = 0
         eps = 1e-6
 
-        x_k = initial_point
+        x_k = ip
 
         while k <= 1e4 and np.linalg.norm(d_f(x_k)) > eps:
             d_k = -d_f(x_k)
@@ -46,7 +50,15 @@ def steepest_descent(
             f_val[k] = f(x_k)
             f_prime_val[k] = np.linalg.norm(d_f(x_k))
 
-        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, ip, condition)
+            x_val.append(x_k)
+            grad_val.append(d_f(x_k))
+
+        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, initial_point, condition)
+        if len(initial_point) == 2:
+            print("x_val: ", np.array(x_val))
+            # plot_contours(k, np.array(x_val), grad_val, f.__name__, initial_point, condition, f)
+
+            # plot_contours(6, np.array([0.1,.2,.3,.4,.5,.6]), grad_val, f.__name__, initial_point, condition, f)
         return x_k
 
     elif condition == "Bisection":
@@ -60,7 +72,7 @@ def steepest_descent(
 
         cutoff = int(1e6)
 
-        x_k = initial_point
+        x_k = ip
 
         while k < 1e4 and np.linalg.norm(d_f(x_k)) > eps:
             d_k = -d_f(x_k)
@@ -89,6 +101,9 @@ def steepest_descent(
             f_val[k] = f(x_k)
             f_prime_val[k] = np.linalg.norm(d_f(x_k))
 
+            x_val.append(x_k)
+            grad_val.append(d_f(x_k))
+
         plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, ip, condition)
         return x_k
     else:
@@ -109,16 +124,19 @@ def newton_method(
     condition: Literal["Pure", "Damped", "Levenberg-Marquardt", "Combined"],
 ) -> npt.NDArray[np.float64]:
     # Complete this function
-    f_val = np.empty(int(1e4))
-    f_prime_val = np.empty(int(1e4))
+    ip = copy.deepcopy(initial_point)
 
-    f_val[0] = f(initial_point)
-    f_prime_val[0] = np.linalg.norm(d_f(initial_point))
+    f_val = np.empty(int(1e4 + 5))
+    f_prime_val = np.empty(int(1e4 + 5))
 
-    ip = copy.copy(initial_point)
+    f_val[0] = f(ip)
+    f_prime_val[0] = np.linalg.norm(d_f(ip))
+
+    x_val = [ip]
+    grad_val = []
 
     if condition == "Pure":
-        x_k = initial_point
+        x_k = ip
         k = 0
         eps = 1e-6
 
@@ -132,6 +150,9 @@ def newton_method(
             f_val[k] = f(x_k)
             f_prime_val[k] = np.linalg.norm(d_f(x_k))
 
+            x_val.append(x_k)
+            grad_val.append(d_f(x_k))
+
             if np.linalg.norm(d_f(x_k)) < eps:
                 break   
         plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, ip, condition)
@@ -141,8 +162,10 @@ def newton_method(
         alpha = 0.1
         beta = 0.9
         eps = 1e-6
-        x_k = initial_point
+        x_k = ip
         k = 0
+
+        t_cutoff = 1e-20
 
         while k <= 1e4:
             d_k = -np.linalg.inv(d2_f(x_k)) @ d_f(x_k)
@@ -150,6 +173,9 @@ def newton_method(
             t = 1
             while f(x_k) - f(x_k + t * d_k) < -alpha * t * d_f(x_k).T@d_k:
                 t *= beta
+
+                if (t < t_cutoff): # t hit float min
+                    break
             
             x_k = x_k + t * d_k
             k += 1
@@ -158,13 +184,17 @@ def newton_method(
             f_val[k] = f(x_k)
             f_prime_val[k] = np.linalg.norm(d_f(x_k))
 
+            x_val.append(x_k)
+            grad_val.append(d_f(x_k))
+
+
             if np.linalg.norm(d_f(x_k)) < eps:
                 break
-        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, ip, condition)
+        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, initial_point, condition)
         return x_k
 
     elif condition == "Levenberg-Marquardt":
-        x_k = initial_point
+        x_k = ip
         k = 0
         eps = 1e-6
 
@@ -185,11 +215,14 @@ def newton_method(
             f_val[k] = f(x_k)
             f_prime_val[k] = np.linalg.norm(d_f(x_k))
 
-        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, ip, condition)
+            x_val.append(x_k)
+            grad_val.append(d_f(x_k))
+
+        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, initial_point, condition)
         return x_k
     
     elif condition == "Combined":
-        x_k = initial_point
+        x_k = ip
         k = 0
         c = 0.001
         eps = 1e-6
@@ -216,7 +249,15 @@ def newton_method(
             f_val[k] = f(x_k)
             f_prime_val[k] = np.linalg.norm(d_f(x_k))
 
-        plot_iterations(k, f_val[:k], f_prime_val[:k], f.__name__, ip, condition)
+            x_val.append(x_k)
+            grad_val.append(d_f(x_k))
+
+        plot_iterations(k, f_val[:k], f_prime_val[:k], c, initial_point, condition)
+        if len(ip) == 2:
+            print("x_val: ", np.array(x_val))
+            # plot_contours(k, np.array(x_val), grad_val, f.__name__, initial_point, condition, f)
+
+            # plot_contours(6, np.array([0.1,.2,.3,.4,.5,.6]), grad_val, f.__name__, initial_point, condition, f)
         return x_k
 
     else:
@@ -227,6 +268,8 @@ def newton_method(
     # Use file f"plots/{f.__name__}_{np.array2string(initial_point)}_condition_grad.png" for plotting |f'(x)| vs iters
     # Use file f"plots/{f.__name__}_{np.array2string(initial_point)}_condition_cont.png" for plotting the contour plot
     pass
+
+import sys
 
 def plot_iterations(k, f_val, f_prime_val, fname, initial_point, condition):
     os.makedirs('./plots', exist_ok=True)
@@ -247,5 +290,43 @@ def plot_iterations(k, f_val, f_prime_val, fname, initial_point, condition):
     plt.savefig(grad_path_name)
     plt.close()
 
-def plot_contours():
-    os.makedirs('./temp', exist_ok=True)
+def plot_contours(k, x_val, grad_val, fname, initial_point, condition, f):
+    assert len(initial_point) == 2
+    
+    os.makedirs('./plots', exist_ok=True)
+
+    cont_path_name = f"plots/{fname}_{np.array2string(initial_point)}_{condition}_cont.png"
+
+    if len(x_val) != 0:
+        xmax = max(x_val, key=lambda x: x[0])
+        ymax = max(x_val, key=lambda x: x[1])
+
+        xmin = min(x_val, key=lambda x: x[0])
+        ymin = min(x_val, key=lambda x: x[1])
+    else:
+        xmax = 30
+        ymax = 30
+
+        xmin = -30
+        ymin = -30
+
+    X,Y = np.meshgrid(
+        # np.linspace(xmin - 0.05 * abs(xmin),  xmax + 0.05 * abs(xmax), num=20),
+        # np.linspace(ymin - 0.05 * abs(ymin),  ymax + 0.05 * abs(ymax), num=20),
+        np.linspace(-3,  3, num=40),
+        np.linspace(-3,  3, num=40),
+    )
+
+    print("asdfasdf: ", X.shape, Y.shape)
+
+    coords = np.array([c for c in zip(X.flatten(),Y.flatten())])
+    print("bleebo: ", coords.shape)
+    Z = np.array([f(c) for c in coords])
+    print("bleebo: ", Z.shape)
+    Zr = Z.reshape(X.shape[0], X.shape[1])
+    print("adsffadsf: ", Zr.shape)
+
+    plt.contour(X, Y, Zr)
+    plt.scatter([x[0] for x in x_val], [x[1] for x in x_val])
+    # plt.show()
+
